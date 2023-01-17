@@ -65,6 +65,11 @@ export const App: React.FC = () => {
 
   const filteredProducts = filterProducts(productsToDisplay, userId, query);
 
+  const clearAll = () => {
+    setUserId(0);
+    setQuery('');
+  };
+
   return (
     <div className="section">
       <div className="container">
@@ -179,6 +184,7 @@ export const App: React.FC = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
+                onClick={clearAll}
               >
                 Reset all filters
               </a>
