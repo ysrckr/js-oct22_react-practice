@@ -6,37 +6,43 @@ import { Sex } from './types/Sex';
 import usersFromServer from './api/users';
 import productsFromServer from './api/products';
 import categoriesFromServer from './api/categories';
+import { Product } from './types/Product';
+import { User } from './types/User';
+import { Category } from './types/Category';
 
 export enum SortBy {
-  Id = 'id',
-  Product = 'product',
-  Category = 'category',
-  User = 'user',
+  id = 'id',
+  product = 'product',
+  category = 'category',
+  user = 'user',
 }
+
+const getUser = (id: number): User | null => {
+  return (
+    (usersFromServer as User[])
+      // prettier-ignore
+      .find((user: User) => user.id === id) || null
+  );
+};
+
+const getCategory = (id: number): Category | null => {
+  return (
+    (categoriesFromServer as Category[])
+      // prettier-ignore
+      .find(category => category.id === id) || null
+  );
+};
 
 function getProductsToDisplay() {
-  const productWithCategory = productsFromServer.map(product => ({
-    id: product.id,
-    name: product.name,
-    category:
-      categoriesFromServer.find(
-        category => category.id === product.categoryId,
-      ) || null,
-  }));
+  return productsFromServer.map(product => {
+    const category = getCategory(product.categoryId);
+    const user = getUser(category?.ownerId || 0);
 
-  return [
-    ...productWithCategory.map(product => ({
-      ...product,
-      user:
-        usersFromServer
-          // prettier-ignore
-          .find(user => user.id === product.category?.ownerId) || null,
-    })),
-  ];
+    return { ...product, category, user };
+  });
 }
 
-// eslint-disable-next-line
-const filterByUser = (products: any[], userId: number) => {
+const filterByUser = (products: Product[], userId: number) => {
   if (!userId) {
     return products;
   }
@@ -45,7 +51,7 @@ const filterByUser = (products: any[], userId: number) => {
 };
 
 // eslint-disable-next-line
-const filterByQuery = (products: any[], query: string) => {
+const filterByQuery = (products: Product[], query: string) => {
   if (!query) {
     return products;
   }
@@ -56,21 +62,21 @@ const filterByQuery = (products: any[], query: string) => {
     .includes(query.toLowerCase()));
 };
 
-// eslint-disable-next-line
-const filterByCategory = (products: any[], selectedCategories: number[]) => {
+const filterByCategory = (
+  products: Product[],
+  selectedCategories: number[],
+) => {
   if (!selectedCategories.length) {
     return products;
   }
 
-  // prettier-ignore
-  return products.filter(product => selectedCategories.includes(
-    product.category?.id,
-  ));
+  return products.filter(product => {
+    return selectedCategories.some(id => id === product.categoryId);
+  });
 };
 
 const sortProductsBy = (
-  // eslint-disable-next-line
-  products: any[],
+  products: Product[],
   sortBy: SortBy | null,
   isReversed: boolean,
 ) => {
@@ -82,14 +88,14 @@ const sortProductsBy = (
 
   sortedPeople.sort((a, b) => {
     switch (sortBy) {
-      case SortBy.Id:
+      case SortBy.id:
         return a.id - b.id;
-      case SortBy.Product:
+      case SortBy.product:
         return a.name.localeCompare(b.name);
-      case SortBy.Category:
-        return a.category?.title.localeCompare(b.category?.title) || 0;
-      case SortBy.User:
-        return a.user?.name.localeCompare(b.user?.name) || 0;
+      case SortBy.category:
+        return a.category?.title.localeCompare(b.category?.title || '') || 0;
+      case SortBy.user:
+        return a.user?.name.localeCompare(b.user?.name || '') || 0;
       default:
         return 0;
     }
@@ -104,8 +110,8 @@ const sortProductsBy = (
 
 // prettier-ignore
 const filterProducts = (
-  // eslint-disable-next-line
-  products: any[],
+
+  products: Product[],
   userId: number,
   query: string,
   selectedCategories: number[],
@@ -301,15 +307,15 @@ export const App: React.FC = () => {
                     ID
                     <a
                       href="#/"
-                      onClick={() => sortByHandler(SortBy.Id)}
+                      onClick={() => sortByHandler(SortBy.id)}
                     >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
                           className={cn('fas', {
                             'fa-sort': !sortBy,
-                            'fa-sort-up': sortBy === SortBy.Id && !isReversed,
-                            'fa-sort-down': sortBy === SortBy.Id && isReversed,
+                            'fa-sort-up': sortBy === SortBy.id && !isReversed,
+                            'fa-sort-down': sortBy === SortBy.id && isReversed,
                           })}
                         />
                       </span>
@@ -322,17 +328,17 @@ export const App: React.FC = () => {
                     Product
                     <a
                       href="#/"
-                      onClick={() => sortByHandler(SortBy.Product)}
+                      onClick={() => sortByHandler(SortBy.product)}
                     >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
                           className={cn('fas', {
-                            'fa-sort': sortBy !== SortBy.Product,
+                            'fa-sort': sortBy !== SortBy.product,
                             'fa-sort-up':
-                              sortBy === SortBy.Product && !isReversed,
+                              sortBy === SortBy.product && !isReversed,
                             'fa-sort-down':
-                              sortBy === SortBy.Product && isReversed,
+                              sortBy === SortBy.product && isReversed,
                           })}
                         />
                       </span>
@@ -345,17 +351,17 @@ export const App: React.FC = () => {
                     Category
                     <a
                       href="#/"
-                      onClick={() => sortByHandler(SortBy.Category)}
+                      onClick={() => sortByHandler(SortBy.category)}
                     >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
                           className={cn('fas', {
-                            'fa-sort': sortBy !== SortBy.Category,
+                            'fa-sort': sortBy !== SortBy.category,
                             'fa-sort-up':
-                              sortBy === SortBy.Category && !isReversed,
+                              sortBy === SortBy.category && !isReversed,
                             'fa-sort-down':
-                              sortBy === SortBy.Category && isReversed,
+                              sortBy === SortBy.category && isReversed,
                           })}
                         />
                       </span>
@@ -368,16 +374,16 @@ export const App: React.FC = () => {
                     User
                     <a
                       href="#/"
-                      onClick={() => sortByHandler(SortBy.User)}
+                      onClick={() => sortByHandler(SortBy.user)}
                     >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
                           className={cn('fas', {
-                            'fa-sort': sortBy !== SortBy.User,
-                            'fa-sort-up': sortBy === SortBy.User && !isReversed,
+                            'fa-sort': sortBy !== SortBy.user,
+                            'fa-sort-up': sortBy === SortBy.user && !isReversed,
                             'fa-sort-down':
-                              sortBy === SortBy.User && isReversed,
+                              sortBy === SortBy.user && isReversed,
                           })}
                         />
                       </span>
