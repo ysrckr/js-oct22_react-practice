@@ -7,26 +7,43 @@ import usersFromServer from './api/users';
 import productsFromServer from './api/products';
 import categoriesFromServer from './api/categories';
 
-const getProductsToDisplay = () => {
-  return productsFromServer.map(product => ({
+function getProductsToDisplay() {
+  const productWithCategory = productsFromServer.map(product => ({
     id: product.id,
     name: product.name,
     category:
       categoriesFromServer.find(
         category => category.id === product.categoryId,
       ) || null,
-    user:
-      usersFromServer.find(user => {
-        return categoriesFromServer.find(
-          category => category.ownerId === user.id,
-        );
-      }) || null,
   }));
+
+  return [
+    ...productWithCategory.map(product => ({
+      ...product,
+      user:
+        usersFromServer
+          // prettier-ignore
+          .find(user => user.id === product.category?.ownerId) || null,
+    })),
+  ];
+}
+
+// eslint-disable-next-line
+const filterByUser = (products: any[], userId: number) => {
+  if (!userId) {
+    return products;
+  }
+
+  return products.filter(product => product.user?.id === userId);
 };
 
 const productsToDisplay = getProductsToDisplay();
 
 export const App: React.FC = () => {
+  const [userId, setUserId] = React.useState(0);
+
+  const filteredProducts = filterByUser(productsToDisplay, userId);
+
   return (
     <div className="section">
       <div className="container">
@@ -40,31 +57,27 @@ export const App: React.FC = () => {
               <a
                 data-cy="FilterAllUsers"
                 href="#/"
+                className={cn({
+                  'is-active': !userId,
+                })}
+                onClick={() => setUserId(0)}
               >
                 All
               </a>
 
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 1
-              </a>
-
-              <a
-                data-cy="FilterUser"
-                href="#/"
-                className="is-active"
-              >
-                User 2
-              </a>
-
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 3
-              </a>
+              {usersFromServer.map(user => (
+                <a
+                  data-cy="FilterUser"
+                  href="#/"
+                  key={user.id}
+                  className={cn({
+                    'is-active': userId === user.id,
+                  })}
+                  onClick={() => setUserId(user.id)}
+                >
+                  {user.name}
+                </a>
+              ))}
             </p>
 
             <div className="panel-block">
@@ -149,10 +162,6 @@ export const App: React.FC = () => {
         </div>
 
         <div className="box table-container">
-          <p data-cy="NoMatchingMessage">
-            No products matching selected criteria
-          </p>
-
           <table
             data-cy="ProductTable"
             className="table is-striped is-narrow is-fullwidth"
@@ -218,32 +227,38 @@ export const App: React.FC = () => {
             </thead>
 
             <tbody>
-              {productsToDisplay.map(product => (
-                <tr
-                  data-cy="Product"
-                  key={product.id}
-                >
-                  <td
-                    className="has-text-weight-bold"
-                    data-cy="ProductId"
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map(product => (
+                  <tr
+                    data-cy="Product"
+                    key={product.id}
                   >
-                    {product.id}
-                  </td>
+                    <td
+                      className="has-text-weight-bold"
+                      data-cy="ProductId"
+                    >
+                      {product.id}
+                    </td>
 
-                  <td data-cy="ProductName">{product.name}</td>
-                  <td data-cy="ProductCategory">{`${product.category?.icon} - ${product.category?.title}`}</td>
+                    <td data-cy="ProductName">{product.name}</td>
+                    <td data-cy="ProductCategory">{`${product.category?.icon} - ${product.category?.title}`}</td>
 
-                  <td
-                    data-cy="ProductUser"
-                    className={cn({
-                      'has-text-danger': product?.user?.sex === Sex.Female,
-                      'has-text-link': product?.user?.sex === Sex.Male,
-                    })}
-                  >
-                    {product.user?.name}
-                  </td>
-                </tr>
-              ))}
+                    <td
+                      data-cy="ProductUser"
+                      className={cn({
+                        'has-text-danger': product?.user?.sex === Sex.Female,
+                        'has-text-link': product?.user?.sex === Sex.Male,
+                      })}
+                    >
+                      {product.user?.name}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <p data-cy="NoMatchingMessage">
+                  No products matching selected criteria
+                </p>
+              )}
             </tbody>
           </table>
         </div>
