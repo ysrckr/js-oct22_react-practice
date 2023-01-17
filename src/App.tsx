@@ -7,6 +7,13 @@ import usersFromServer from './api/users';
 import productsFromServer from './api/products';
 import categoriesFromServer from './api/categories';
 
+export enum SortBy {
+  Id = 'id',
+  Product = 'product',
+  Category = 'category',
+  User = 'user',
+}
+
 function getProductsToDisplay() {
   const productWithCategory = productsFromServer.map(product => ({
     id: product.id,
@@ -61,6 +68,40 @@ const filterByCategory = (products: any[], selectedCategories: number[]) => {
   ));
 };
 
+const sortProductsBy = (
+  // eslint-disable-next-line
+  products: any[],
+  sortBy: SortBy | null,
+  isReversed: boolean,
+) => {
+  if (!sortBy) {
+    return products;
+  }
+
+  const sortedPeople = [...products];
+
+  sortedPeople.sort((a, b) => {
+    switch (sortBy) {
+      case SortBy.Id:
+        return a.id - b.id;
+      case SortBy.Product:
+        return a.name.localeCompare(b.name);
+      case SortBy.Category:
+        return a.category?.title.localeCompare(b.category?.title) || 0;
+      case SortBy.User:
+        return a.user?.name.localeCompare(b.user?.name) || 0;
+      default:
+        return 0;
+    }
+  });
+
+  if (isReversed) {
+    return sortedPeople.reverse();
+  }
+
+  return sortedPeople;
+};
+
 // prettier-ignore
 const filterProducts = (
   // eslint-disable-next-line
@@ -68,6 +109,8 @@ const filterProducts = (
   userId: number,
   query: string,
   selectedCategories: number[],
+  sortBy: SortBy | null,
+  isReversed: boolean,
 ) => {
   const filteredByUser = filterByUser(products, userId);
   const filteredByCategory = filterByCategory(
@@ -76,7 +119,9 @@ const filterProducts = (
   );
   const filteredByQuery = filterByQuery(filteredByCategory, query);
 
-  return filteredByQuery;
+  const sortedProducts = sortProductsBy(filteredByQuery, sortBy, isReversed);
+
+  return sortedProducts;
 };
 
 const productsToDisplay = getProductsToDisplay();
@@ -85,18 +130,15 @@ export const App: React.FC = () => {
   const [userId, setUserId] = useState(0);
   const [query, setQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-
-  const filteredProducts = filterProducts(
-    productsToDisplay,
-    userId,
-    query,
-    selectedCategories,
-  );
+  const [sortBy, setSortBy] = useState<SortBy | null>(null);
+  const [isReversed, setIsReversed] = useState(false);
 
   const clearAll = () => {
     setUserId(0);
     setQuery('');
     setSelectedCategories([]);
+    setSortBy(null);
+    setIsReversed(false);
   };
 
   const selectCategory = (categoryId: number) => {
@@ -108,6 +150,33 @@ export const App: React.FC = () => {
 
     setSelectedCategories(prev => [...prev, categoryId]);
   };
+
+  const sortByHandler = (sort: SortBy) => {
+    if (sort !== sortBy) {
+      setSortBy(sort);
+      setIsReversed(false);
+
+      return;
+    }
+
+    if (!isReversed) {
+      setIsReversed(true);
+
+      return;
+    }
+
+    setSortBy(null);
+    setIsReversed(false);
+  };
+
+  const filteredProducts = filterProducts(
+    productsToDisplay,
+    userId,
+    query,
+    selectedCategories,
+    sortBy,
+    isReversed,
+  );
 
   return (
     <div className="section">
@@ -209,9 +278,8 @@ export const App: React.FC = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className={cn('button is-link is-fullwidth', {
-                  'is-outlined': !userId
-                    && !query
-                    && !selectedCategories.length,
+                  'is-outlined':
+                    !userId && !query && selectedCategories.length < 1,
                 })}
                 onClick={clearAll}
               >
@@ -231,11 +299,18 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     ID
-                    <a href="#/">
+                    <a
+                      href="#/"
+                      onClick={() => sortByHandler(SortBy.Id)}
+                    >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
-                          className="fas fa-sort"
+                          className={cn('fas', {
+                            'fa-sort': !sortBy,
+                            'fa-sort-up': sortBy === SortBy.Id && !isReversed,
+                            'fa-sort-down': sortBy === SortBy.Id && isReversed,
+                          })}
                         />
                       </span>
                     </a>
@@ -245,11 +320,20 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     Product
-                    <a href="#/">
+                    <a
+                      href="#/"
+                      onClick={() => sortByHandler(SortBy.Product)}
+                    >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
-                          className="fas fa-sort-down"
+                          className={cn('fas', {
+                            'fa-sort': sortBy !== SortBy.Product,
+                            'fa-sort-up':
+                              sortBy === SortBy.Product && !isReversed,
+                            'fa-sort-down':
+                              sortBy === SortBy.Product && isReversed,
+                          })}
                         />
                       </span>
                     </a>
@@ -259,11 +343,20 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     Category
-                    <a href="#/">
+                    <a
+                      href="#/"
+                      onClick={() => sortByHandler(SortBy.Category)}
+                    >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
-                          className="fas fa-sort-up"
+                          className={cn('fas', {
+                            'fa-sort': sortBy !== SortBy.Category,
+                            'fa-sort-up':
+                              sortBy === SortBy.Category && !isReversed,
+                            'fa-sort-down':
+                              sortBy === SortBy.Category && isReversed,
+                          })}
                         />
                       </span>
                     </a>
@@ -273,11 +366,19 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     User
-                    <a href="#/">
+                    <a
+                      href="#/"
+                      onClick={() => sortByHandler(SortBy.User)}
+                    >
                       <span className="icon">
                         <i
                           data-cy="SortIcon"
-                          className="fas fa-sort"
+                          className={cn('fas', {
+                            'fa-sort': sortBy !== SortBy.User,
+                            'fa-sort-up': sortBy === SortBy.User && !isReversed,
+                            'fa-sort-down':
+                              sortBy === SortBy.User && isReversed,
+                          })}
                         />
                       </span>
                     </a>
