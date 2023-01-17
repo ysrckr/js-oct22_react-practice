@@ -37,12 +37,33 @@ const filterByUser = (products: any[], userId: number) => {
   return products.filter(product => product.user?.id === userId);
 };
 
+// eslint-disable-next-line
+const filterByQuery = (products: any[], query: string) => {
+  if (!query) {
+    return products;
+  }
+
+  // prettier-ignore
+  return products.filter(product => product.name
+    .toLowerCase()
+    .includes(query.toLowerCase()));
+};
+
+// eslint-disable-next-line
+const filterProducts = (products: any[], userId: number, query: string) => {
+  const filteredByUser = filterByUser(products, userId);
+  const filteredByQuery = filterByQuery(filteredByUser, query);
+
+  return filteredByQuery;
+};
+
 const productsToDisplay = getProductsToDisplay();
 
 export const App: React.FC = () => {
   const [userId, setUserId] = React.useState(0);
+  const [query, setQuery] = React.useState('');
 
-  const filteredProducts = filterByUser(productsToDisplay, userId);
+  const filteredProducts = filterProducts(productsToDisplay, userId, query);
 
   return (
     <div className="section">
@@ -87,7 +108,8 @@ export const App: React.FC = () => {
                   type="text"
                   className="input"
                   placeholder="Search"
-                  value="qwe"
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
                 />
 
                 <span className="icon is-left">
@@ -97,14 +119,17 @@ export const App: React.FC = () => {
                   />
                 </span>
 
-                <span className="icon is-right">
-                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                  <button
-                    data-cy="ClearButton"
-                    type="button"
-                    className="delete"
-                  />
-                </span>
+                {query && (
+                  <span className="icon is-right">
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+                    <button
+                      data-cy="ClearButton"
+                      type="button"
+                      className="delete"
+                      onClick={() => setQuery('')}
+                    />
+                  </span>
+                )}
               </p>
             </div>
 
@@ -241,7 +266,9 @@ export const App: React.FC = () => {
                     </td>
 
                     <td data-cy="ProductName">{product.name}</td>
-                    <td data-cy="ProductCategory">{`${product.category?.icon} - ${product.category?.title}`}</td>
+                    <td data-cy="ProductCategory">
+                      {`${product.category?.icon} - ${product.category?.title}`}
+                    </td>
 
                     <td
                       data-cy="ProductUser"
