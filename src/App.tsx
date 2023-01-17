@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import cn from 'classnames';
 import './App.scss';
 import { Sex } from './types/Sex';
@@ -50,9 +50,31 @@ const filterByQuery = (products: any[], query: string) => {
 };
 
 // eslint-disable-next-line
-const filterProducts = (products: any[], userId: number, query: string) => {
+const filterByCategory = (products: any[], selectedCategories: number[]) => {
+  if (!selectedCategories.length) {
+    return products;
+  }
+
+  // prettier-ignore
+  return products.filter(product => selectedCategories.includes(
+    product.category?.id,
+  ));
+};
+
+// prettier-ignore
+const filterProducts = (
+  // eslint-disable-next-line
+  products: any[],
+  userId: number,
+  query: string,
+  selectedCategories: number[],
+) => {
   const filteredByUser = filterByUser(products, userId);
-  const filteredByQuery = filterByQuery(filteredByUser, query);
+  const filteredByCategory = filterByCategory(
+    filteredByUser,
+    selectedCategories,
+  );
+  const filteredByQuery = filterByQuery(filteredByCategory, query);
 
   return filteredByQuery;
 };
@@ -60,14 +82,30 @@ const filterProducts = (products: any[], userId: number, query: string) => {
 const productsToDisplay = getProductsToDisplay();
 
 export const App: React.FC = () => {
-  const [userId, setUserId] = React.useState(0);
-  const [query, setQuery] = React.useState('');
+  const [userId, setUserId] = useState(0);
+  const [query, setQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
-  const filteredProducts = filterProducts(productsToDisplay, userId, query);
+  const filteredProducts = filterProducts(
+    productsToDisplay,
+    userId,
+    query,
+    selectedCategories,
+  );
 
   const clearAll = () => {
     setUserId(0);
     setQuery('');
+  };
+
+  const selectCategory = (categoryId: number) => {
+    if (selectedCategories.includes(categoryId)) {
+      setSelectedCategories(selectedCategories.filter(id => id !== categoryId));
+
+      return;
+    }
+
+    setSelectedCategories(prev => [...prev, categoryId]);
   };
 
   return (
@@ -142,41 +180,27 @@ export const App: React.FC = () => {
               <a
                 href="#/"
                 data-cy="AllCategories"
-                className="button is-success mr-6 is-outlined"
+                className={cn('button is-success mr-6', {
+                  'is-outlined': selectedCategories.length > 0,
+                })}
+                onClick={() => setSelectedCategories([])}
               >
                 All
               </a>
 
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 1
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 2
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 3
-              </a>
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 4
-              </a>
+              {categoriesFromServer.map(category => (
+                <a
+                  data-cy="Category"
+                  className={cn('button mr-2 my-1', {
+                    'is-info': selectedCategories.includes(category.id),
+                  })}
+                  href="#/"
+                  key={category.id}
+                  onClick={() => selectCategory(category.id)}
+                >
+                  {category.title}
+                </a>
+              ))}
             </div>
 
             <div className="panel-block">
