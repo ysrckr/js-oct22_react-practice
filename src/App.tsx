@@ -96,6 +96,7 @@ export const App: React.FC = () => {
   const clearAll = () => {
     setUserId(0);
     setQuery('');
+    setSelectedCategories([]);
   };
 
   const selectCategory = (categoryId: number) => {
@@ -207,7 +208,11 @@ export const App: React.FC = () => {
               <a
                 data-cy="ResetAllButton"
                 href="#/"
-                className="button is-link is-outlined is-fullwidth"
+                className={cn('button is-link is-fullwidth', {
+                  'is-outlined': !userId
+                    && !query
+                    && !selectedCategories.length,
+                })}
                 onClick={clearAll}
               >
                 Reset all filters
