@@ -1,9 +1,30 @@
 import React from 'react';
+import cn from 'classnames';
 import './App.scss';
+import { Sex } from './types/Sex';
 
-// import usersFromServer from './api/users';
-// import productsFromServer from './api/products';
-// import categoriesFromServer from './api/categories';
+import usersFromServer from './api/users';
+import productsFromServer from './api/products';
+import categoriesFromServer from './api/categories';
+
+const getProductsToDisplay = () => {
+  return productsFromServer.map(product => ({
+    id: product.id,
+    name: product.name,
+    category:
+      categoriesFromServer.find(
+        category => category.id === product.categoryId,
+      ) || null,
+    user:
+      usersFromServer.find(user => {
+        return categoriesFromServer.find(
+          category => category.ownerId === user.id,
+        );
+      }) || null,
+  }));
+};
+
+const productsToDisplay = getProductsToDisplay();
 
 export const App: React.FC = () => {
   return (
@@ -57,7 +78,10 @@ export const App: React.FC = () => {
                 />
 
                 <span className="icon is-left">
-                  <i className="fas fa-search" aria-hidden="true" />
+                  <i
+                    className="fas fa-search"
+                    aria-hidden="true"
+                  />
                 </span>
 
                 <span className="icon is-right">
@@ -117,7 +141,6 @@ export const App: React.FC = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
-
               >
                 Reset all filters
               </a>
@@ -139,10 +162,12 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     ID
-
                     <a href="#/">
                       <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort" />
+                        <i
+                          data-cy="SortIcon"
+                          className="fas fa-sort"
+                        />
                       </span>
                     </a>
                   </span>
@@ -151,10 +176,12 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     Product
-
                     <a href="#/">
                       <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort-down" />
+                        <i
+                          data-cy="SortIcon"
+                          className="fas fa-sort-down"
+                        />
                       </span>
                     </a>
                   </span>
@@ -163,10 +190,12 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     Category
-
                     <a href="#/">
                       <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort-up" />
+                        <i
+                          data-cy="SortIcon"
+                          className="fas fa-sort-up"
+                        />
                       </span>
                     </a>
                   </span>
@@ -175,10 +204,12 @@ export const App: React.FC = () => {
                 <th>
                   <span className="is-flex is-flex-wrap-nowrap">
                     User
-
                     <a href="#/">
                       <span className="icon">
-                        <i data-cy="SortIcon" className="fas fa-sort" />
+                        <i
+                          data-cy="SortIcon"
+                          className="fas fa-sort"
+                        />
                       </span>
                     </a>
                   </span>
@@ -187,53 +218,32 @@ export const App: React.FC = () => {
             </thead>
 
             <tbody>
-              <tr data-cy="Product">
-                <td className="has-text-weight-bold" data-cy="ProductId">
-                  1
-                </td>
-
-                <td data-cy="ProductName">Milk</td>
-                <td data-cy="ProductCategory">🍺 - Drinks</td>
-
-                <td
-                  data-cy="ProductUser"
-                  className="has-text-link"
+              {productsToDisplay.map(product => (
+                <tr
+                  data-cy="Product"
+                  key={product.id}
                 >
-                  Max
-                </td>
-              </tr>
+                  <td
+                    className="has-text-weight-bold"
+                    data-cy="ProductId"
+                  >
+                    {product.id}
+                  </td>
 
-              <tr data-cy="Product">
-                <td className="has-text-weight-bold" data-cy="ProductId">
-                  2
-                </td>
+                  <td data-cy="ProductName">{product.name}</td>
+                  <td data-cy="ProductCategory">{`${product.category?.icon} - ${product.category?.title}`}</td>
 
-                <td data-cy="ProductName">Bread</td>
-                <td data-cy="ProductCategory">🍞 - Grocery</td>
-
-                <td
-                  data-cy="ProductUser"
-                  className="has-text-danger"
-                >
-                  Anna
-                </td>
-              </tr>
-
-              <tr data-cy="Product">
-                <td className="has-text-weight-bold" data-cy="ProductId">
-                  3
-                </td>
-
-                <td data-cy="ProductName">iPhone</td>
-                <td data-cy="ProductCategory">💻 - Electronics</td>
-
-                <td
-                  data-cy="ProductUser"
-                  className="has-text-link"
-                >
-                  Roma
-                </td>
-              </tr>
+                  <td
+                    data-cy="ProductUser"
+                    className={cn({
+                      'has-text-danger': product?.user?.sex === Sex.Female,
+                      'has-text-link': product?.user?.sex === Sex.Male,
+                    })}
+                  >
+                    {product.user?.name}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
